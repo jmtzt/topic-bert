@@ -85,8 +85,10 @@ def create_random_batch(
 
 if __name__ == "__main__":
     # Example usage
+    base_model = BertModel.from_pretrained(PRETRAINED_MODEL_NAME)
+
     model = FinetunedBert(
-        base_model=BertModel.from_pretrained(PRETRAINED_MODEL_NAME),
+        base_model=base_model,
         dropout_p=0.1,
         embedding_dim=768,
         num_classes=10,
