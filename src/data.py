@@ -180,3 +180,25 @@ def preprocess(df: pd.DataFrame) -> Dict:
     df = df[["text", "topic"]]  # rearrange columns
     outputs = tokenize(df)
     return outputs
+
+
+class CustomPreprocessor:
+    """Custom preprocessor class."""
+
+    def __init__(self, class_names: List[str] = None):
+        self.class_names = class_names or []
+        self.class_to_index = {name: i for i, name in enumerate(self.class_names)}
+        self.index_to_class = {i: name for i, name in enumerate(self.class_names)}
+
+    def fit(self, ds):
+        # This is a no-op for this example, but you could use it to
+        # e.g. convert class names to indices
+        return self
+
+    def transform(self, ds):
+        return ds.map_batches(
+            preprocess,
+            batch_format="pandas",
+        )
+
+
