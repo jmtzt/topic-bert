@@ -202,3 +202,31 @@ class CustomPreprocessor:
         )
 
 
+if __name__ == "__main__":
+    # Dataset
+    num_samples = 100
+    ds, class_names = load_data(num_samples=num_samples)
+    train_ds, val_ds = stratify_split(ds, stratify="topic", test_size=0.2)
+    tags = train_ds.unique(column="topic")
+    num_classes = len(tags)
+
+    # Preprocess
+    preprocessor = CustomPreprocessor()
+    # preprocessor = preprocessor.fit(train_ds)
+    train_ds = preprocessor.transform(train_ds)
+    val_ds = preprocessor.transform(val_ds)
+
+    train_ds = train_ds.materialize()
+    val_ds = val_ds.materialize()
+
+    logger.info(f"Train dataset: {train_ds.count()} samples")
+    logger.info(f"Validation dataset: {val_ds.count()} samples")
+
+    logger.info(f"Sample from train dataset: {train_ds.take(1)}")
+
+    train_counts = train_ds.groupby("targets").count().to_pandas()
+    val_counts = val_ds.groupby("targets").count().to_pandas()
+    logger.info("Train dataset counts by topic:")
+    logger.info(train_counts)
+    logger.info("Validation dataset counts by topic:")
+    logger.info(val_counts)
