@@ -122,3 +122,22 @@ def clean_text(text: str, stopwords: List = STOPWORDS) -> str:
     return text
 
 
+def tokenize(batch: Dict) -> Dict:
+    """Tokenize the text input in our batch using a tokenizer.
+
+    Args:
+        batch (Dict): batch of data with the text inputs to tokenize.
+
+    Returns:
+        Dict: batch of data with the results of tokenization (`input_ids` and `attention_mask`) on the text inputs.
+    """
+    tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME, return_dict=False)
+    encoded_inputs = tokenizer(
+        batch["text"].tolist(), return_tensors="np", padding="longest"
+    )
+    return dict(
+        ids=encoded_inputs["input_ids"],
+        masks=encoded_inputs["attention_mask"],
+        targets=np.array(batch["topic"]),
+    )
+
