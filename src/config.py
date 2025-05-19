@@ -14,7 +14,7 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 DATASET_NAME = "community-datasets/yahoo_answers_topics"
 
 # Bert Pretrained Model
-PRETRAINED_MODEL_NAME = "allenai/scibert_scivocab_uncased"
+PRETRAINED_MODEL_NAME = "google-bert/bert-base-cased"
 
 # Logging
 # Logger
