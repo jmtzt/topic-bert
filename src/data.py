@@ -93,3 +93,32 @@ def stratify_split(
     return train_ds, test_ds
 
 
+def clean_text(text: str, stopwords: List = STOPWORDS) -> str:
+    """Clean raw text string.
+
+    Args:
+        text (str): Raw text to clean.
+        stopwords (List, optional): list of words to filter out. Defaults to STOPWORDS.
+
+    Returns:
+        str: cleaned text.
+    """
+    # Lower
+    text = text.lower()
+
+    # Remove stopwords
+    pattern = re.compile(r"\b(" + r"|".join(stopwords) + r")\b\s*")
+    text = pattern.sub(" ", text)
+
+    # Spacing and filters
+    text = re.sub(
+        r"([!\"'#$%&()*\+,-./:;<=>?@\\\[\]^_`{|}~])", r" \1 ", text
+    )  # add spacing
+    text = re.sub("[^A-Za-z0-9]+", " ", text)  # remove non alphanumeric chars
+    text = re.sub(" +", " ", text)  # remove multiple spaces
+    text = text.strip()  # strip white space at the ends
+    text = re.sub(r"http\S+", "", text)  # remove links
+
+    return text
+
+
