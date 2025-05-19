@@ -141,3 +141,42 @@ def tokenize(batch: Dict) -> Dict:
         targets=np.array(batch["topic"]),
     )
 
+
+def combine_text_fields(row: Dict) -> str:
+    """Combine text fields, handling empty values.
+
+    Args:
+        row (Dict): Dictionary containing the text fields
+
+    Returns:
+        str: Combined text with empty fields filtered out
+    """
+    texts = []
+    if row.get("question_title"):
+        texts.append(row["question_title"])
+    if row.get("question_content"):
+        texts.append(row["question_content"])
+    if row.get("best_answer"):
+        texts.append(row["best_answer"])
+    return " ".join(texts)
+
+
+def preprocess(df: pd.DataFrame) -> Dict:
+    """Preprocess the data in our dataframe.
+
+    Args:
+        df (pd.DataFrame): Raw dataframe to preprocess.
+
+    Returns:
+        Dict: preprocessed data (ids, masks, targets).
+    """
+    # feature engineering, combine text columns
+    df["text"] = df.apply(combine_text_fields, axis=1)
+    df["text"] = df.text.apply(clean_text)  # clean text
+    df = df.drop(
+        columns=["id", "question_title", "question_content", "best_answer"],
+        errors="ignore",
+    )  # clean dataframe
+    df = df[["text", "topic"]]  # rearrange columns
+    outputs = tokenize(df)
+    return outputs
