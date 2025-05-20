@@ -217,7 +217,9 @@ if __name__ == "__main__":
     num_classes = len(tags)
 
     # Preprocess
-    preprocessor = CustomPreprocessor()
+    preprocessor = CustomPreprocessor(class_names=class_names)
+    logger.info(preprocessor.class_to_index)
+    logger.info(preprocessor.index_to_class)
     # preprocessor = preprocessor.fit(train_ds)
     train_ds = preprocessor.transform(train_ds)
     val_ds = preprocessor.transform(val_ds)
