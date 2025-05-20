@@ -1,8 +1,8 @@
 import numpy as np
-
-from src import utils
 import torch
 from ray.train.torch import get_device
+
+from src import utils
 
 
 def test_pad_array():
