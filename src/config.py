@@ -1,7 +1,6 @@
 # config.py
 import logging
 import logging.config
-import os
 import sys
 from pathlib import Path
 
@@ -24,7 +23,8 @@ logging_config = {
     "formatters": {
         "minimal": {"format": "%(message)s"},
         "detailed": {
-            "format": "%(levelname)s %(asctime)s [%(name)s:%(filename)s:%(funcName)s:%(lineno)d]\n%(message)s\n"
+            "format": "%(levelname)s %(asctime)s\
+             [%(name)s:%(filename)s:%(funcName)s:%(lineno)d]\n%(message)s\n"
         },
     },
     "handlers": {

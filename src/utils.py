@@ -29,7 +29,8 @@ def collate_fn(
     """Convert a batch of numpy arrays to tensors (with appropriate padding).
 
     Args:
-        batch (Dict[str, np.ndarray]): input batch as a dictionary of numpy arrays.
+        batch (Dict[str, np.ndarray]): input batch as a dictionary of
+        numpy arrays.
 
     Returns:
         Dict[str, torch.Tensor]: output batch as a dictionary of tensors.

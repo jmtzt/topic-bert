@@ -21,10 +21,11 @@ def load_data(
 
     Args:
         dataset_name (str): The name of the dataset to load.
-        num_samples (int, optional): The number of samples to load. Defaults to None.
+        num_samples (int, optional): The number of samples to load.
+        Defaults to None.
 
     Returns:
-        Tuple[Dataset, List[str]]: Our dataset represented by a Ray Dataset and list of class names.
+        Tuple[Dataset, List[str]]: a Ray Dataset and list of class names.
     """
     ds = load_dataset(dataset_name, split="train")
     class_names = ds.features[target_column].names
@@ -49,16 +50,15 @@ def stratify_split(
         ds (Dataset): Input dataset to split.
         stratify (str): Name of column to split on.
         test_size (float): Proportion of dataset to split for test set.
-        shuffle (bool, optional): whether to shuffle the dataset. Defaults to True.
+        shuffle (bool, optional): whether to shuffle the dataset.
+        Defaults to True.
         seed (int, optional): seed for shuffling. Defaults to 1234.
 
     Returns:
         Tuple[Dataset, Dataset]: the stratified train and test datasets.
     """
 
-    def _add_split(
-        df: pd.DataFrame,
-    ) -> pd.DataFrame:  # pragma: no cover, used in parent function
+    def _add_split(df: pd.DataFrame) -> pd.DataFrame:
         """Naively split a dataframe into train and test splits.
         Add a column specifying whether it's the train or test split."""
         train, test = train_test_split(
@@ -68,9 +68,7 @@ def stratify_split(
         test["_split"] = "test"
         return pd.concat([train, test])
 
-    def _filter_split(
-        df: pd.DataFrame, split: str
-    ) -> pd.DataFrame:  # pragma: no cover, used in parent function
+    def _filter_split(df: pd.DataFrame, split: str) -> pd.DataFrame:
         """Filter by data points that match the split column's value
         and return the dataframe with the _split column dropped."""
         return df[df["_split"] == split].drop("_split", axis=1)
@@ -98,7 +96,8 @@ def clean_text(text: str, stopwords: List = STOPWORDS) -> str:
 
     Args:
         text (str): Raw text to clean.
-        stopwords (List, optional): list of words to filter out. Defaults to STOPWORDS.
+        stopwords (List, optional): list of words to filter out.
+        Defaults to STOPWORDS.
 
     Returns:
         str: cleaned text.
@@ -129,9 +128,12 @@ def tokenize(batch: Dict) -> Dict:
         batch (Dict): batch of data with the text inputs to tokenize.
 
     Returns:
-        Dict: batch of data with the results of tokenization (`input_ids` and `attention_mask`) on the text inputs.
+        Dict: batch of data with the results of tokenization
+        (`input_ids` and `attention_mask`) on the text inputs.
     """
-    tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME, return_dict=False)
+    tokenizer = BertTokenizer.from_pretrained(
+        PRETRAINED_MODEL_NAME, return_dict=False
+    )
     encoded_inputs = tokenizer(
         batch["text"].tolist(), return_tensors="np", padding="longest"
     )
@@ -187,8 +189,12 @@ class CustomPreprocessor:
 
     def __init__(self, class_names: List[str] = None):
         self.class_names = class_names or []
-        self.class_to_index = {name: i for i, name in enumerate(self.class_names)}
-        self.index_to_class = {i: name for i, name in enumerate(self.class_names)}
+        self.class_to_index = {
+            name: i for i, name in enumerate(self.class_names)
+        }
+        self.index_to_class = {
+            i: name for i, name in enumerate(self.class_names)
+        }
 
     def fit(self, ds):
         # This is a no-op for this example, but you could use it to

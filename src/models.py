@@ -56,7 +56,9 @@ class FinetunedBert(nn.Module):
     def load(cls, args_fp, state_dict_fp):
         with open(args_fp, "r") as fp:
             kwargs = json.load(fp=fp)
-        base_model = BertModel.from_pretrained(PRETRAINED_MODEL_NAME, return_dict=False)
+        base_model = BertModel.from_pretrained(
+            PRETRAINED_MODEL_NAME, return_dict=False
+        )
         model = cls(base_model=base_model, **kwargs)
         model.load_state_dict(
             torch.load(state_dict_fp, map_location=torch.device("cpu"))
