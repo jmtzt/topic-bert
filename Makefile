@@ -19,6 +19,9 @@ format:
 	$(ACTIVATE) && isort src/ tests/
 	$(ACTIVATE) && ruff format src/ tests/
 
+test:
+	$(ACTIVATE) && pytest tests/ --verbose --disable-warnings
+
 clean: format
 	find . -type f -name "*.DS_Store" -ls -delete
 	find . | grep -E "(__pycache__|\.pyc|\.pyo)" | xargs rm -rf
