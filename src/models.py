@@ -24,7 +24,11 @@ class FinetunedBert(nn.Module):
     def forward(self, batch):
         ids, masks = batch["ids"], batch["masks"]
         out = self.base_model(input_ids=ids, attention_mask=masks)
-        z = self.dropout(out.pooler_output)
+        if isinstance(out, tuple):
+            pooler_output = out[1]
+        else:
+            pooler_output = out.pooler_output
+        z = self.dropout(pooler_output)
         z = self.fc1(z)
         return z
 
