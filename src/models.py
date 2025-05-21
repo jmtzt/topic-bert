@@ -102,6 +102,10 @@ if __name__ == "__main__":
     logger.info("Model initialized successfully.")
     logger.info(model)
 
+    # Get number of trainable parameters
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.info(f"Number of trainable parameters: {num_params}")
+
     batch = create_random_batch()
 
     outputs = model(batch)
