@@ -1,6 +1,8 @@
+import tempfile
 from typing import Tuple
 
 import numpy as np
+import ray.train as train
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -91,6 +93,78 @@ def eval_step(
             y_trues.extend(batch["targets"].cpu().numpy())
             y_preds.extend(torch.argmax(z, dim=1).cpu().numpy())
     return loss, np.vstack(y_trues), np.vstack(y_preds)
+
+
+def train_loop_per_worker(config: dict) -> None:
+    """Training loop that each ray worker will execute.
+
+    Args:
+        config (dict): arguments to use for training.
+    """
+    # Hyperparameters
+    dropout_p = config["dropout_p"]
+    lr = config["lr"]
+    lr_factor = config["lr_factor"]
+    lr_patience = config["lr_patience"]
+    num_epochs = config["num_epochs"]
+    batch_size = config["batch_size"]
+    num_classes = config["num_classes"]
+
+    # Get datasets
+    utils.set_seeds()
+    train_ds = train.get_dataset_shard("train")
+    val_ds = train.get_dataset_shard("val")
+
+    # Model
+    base_model = BertModel.from_pretrained(PRETRAINED_MODEL_NAME)
+    model = FinetunedBert(
+        base_model=base_model,
+        dropout_p=dropout_p,
+        embedding_dim=base_model.config.hidden_size,
+        num_classes=num_classes,
+    )
+    model = train.torch.prepare_model(model)
+
+    # Training components
+    loss_fn = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=lr_factor, patience=lr_patience
+    )
+
+    # Training
+    num_workers = train.get_context().get_world_size()
+    batch_size_per_worker = batch_size // num_workers
+    for epoch in range(num_epochs):
+        # Step
+        train_loss = train_step(
+            train_ds,
+            batch_size_per_worker,
+            model,
+            num_classes,
+            loss_fn,
+            optimizer,
+        )
+        val_loss, _, _ = eval_step(
+            val_ds, batch_size_per_worker, model, num_classes, loss_fn
+        )
+        scheduler.step(val_loss)
+
+        # Checkpoint and report metrics
+        with tempfile.TemporaryDirectory() as dp:
+            # ddp, we can access the model under the module attribute
+            if isinstance(model, nn.parallel.DistributedDataParallel):
+                model.module.save(dp=dp)
+            else:
+                model.save(dp=dp)
+            metrics = dict(
+                epoch=epoch,
+                lr=optimizer.param_groups[0]["lr"],
+                train_loss=train_loss,
+                val_loss=val_loss,
+            )
+            checkpoint = train.Checkpoint.from_directory(dp)
+            train.report(metrics, checkpoint=checkpoint)
 
 
 if __name__ == "__main__":
