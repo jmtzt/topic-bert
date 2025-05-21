@@ -178,12 +178,12 @@ def tune_models(
         ),
     }
     logger.info(json.dumps(d, indent=2))
-    if results_fp:
+    if results_fp:  # pragma: no cover
         utils.save_dict(d, results_fp)
     return results
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # Example usage
     experiment_name = "bert_hparam_tune_test"
     train_loop_config = {

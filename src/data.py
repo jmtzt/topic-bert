@@ -260,7 +260,7 @@ def plot_topic_distributions(
     plt.close()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # Dataset
     num_samples = 10_000
     ds, class_names = load_data(num_samples=num_samples)

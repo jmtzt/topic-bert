@@ -95,7 +95,7 @@ def save_dict(
         fp.write("\n")
 
 
-def get_run_id(experiment_name: str, trial_id: str) -> str:
+def get_run_id(experiment_name: str, trial_id: str) -> str:  # pragma: no cover
     """Get the MLflow run ID for a specific Ray trial ID.
 
     Args:

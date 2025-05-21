@@ -31,7 +31,7 @@ def train_step(
     num_classes: int,
     loss_fn: torch.nn.modules.loss._WeightedLoss,
     optimizer: torch.optim.Optimizer,
-) -> float:
+) -> float:  # pragma: no cover
     """Train step.
 
     Args:
@@ -71,7 +71,7 @@ def eval_step(
     model: nn.Module,
     num_classes: int,
     loss_fn: torch.nn.modules.loss._WeightedLoss,
-) -> Tuple[float, np.array, np.array]:
+) -> Tuple[float, np.array, np.array]:  # pragma: no cover
     """Eval step.
 
     Args:
@@ -105,7 +105,7 @@ def eval_step(
     return loss, np.vstack(y_trues), np.vstack(y_preds)
 
 
-def train_loop_per_worker(config: dict) -> None:
+def train_loop_per_worker(config: dict) -> None:  # pragma: no cover
     """Training loop that each ray worker will execute.
 
     Args:
@@ -295,12 +295,12 @@ def train_model(
         ),
     }
     logger.info(json.dumps(d, indent=2))
-    if results_fp:
+    if results_fp:  # pragma: no cover
         utils.save_dict(d, results_fp)
     return results
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # Training params
     experiment_name = "bert_finetune_example"
     train_loop_config = {

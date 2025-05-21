@@ -89,7 +89,7 @@ def create_random_batch(
     return {"ids": ids, "masks": masks, "targets": targets}
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # Example usage
     base_model = BertModel.from_pretrained(PRETRAINED_MODEL_NAME)
 
