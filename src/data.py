@@ -1,6 +1,8 @@
+import os
 import re
 from typing import Dict, List, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import ray
@@ -9,11 +11,12 @@ from ray.data import Dataset
 from sklearn.model_selection import train_test_split
 from transformers import BertTokenizer
 
-from src.config import DATASET_NAME, PRETRAINED_MODEL_NAME, STOPWORDS, logger
+from src import config
+from src.config import logger
 
 
 def load_data(
-    dataset_name: str = DATASET_NAME,
+    dataset_name: str = config.DATASET_NAME,
     target_column: str = "topic",
     num_samples: int = None,
 ) -> Tuple[Dataset, List[str]]:
@@ -91,7 +94,7 @@ def stratify_split(
     return train_ds, test_ds
 
 
-def clean_text(text: str, stopwords: List = STOPWORDS) -> str:
+def clean_text(text: str, stopwords: List = config.STOPWORDS) -> str:
     """Clean raw text string.
 
     Args:
@@ -132,7 +135,7 @@ def tokenize(batch: Dict) -> Dict:
         (`input_ids` and `attention_mask`) on the text inputs.
     """
     tokenizer = BertTokenizer.from_pretrained(
-        PRETRAINED_MODEL_NAME, return_dict=False
+        config.PRETRAINED_MODEL_NAME, return_dict=False
     )
     max_len = tokenizer.model_max_length
 
@@ -215,9 +218,49 @@ class CustomPreprocessor:
         )
 
 
+def plot_topic_distributions(
+    train_counts: pd.DataFrame,
+    val_counts: pd.DataFrame,
+    class_names: List[str],
+    save_dir: str = config.ROOT_DIR / "results",
+):
+    """Create plots with the distribution of topics in train and val sets.
+
+    Args:
+        train_counts (pd.DataFrame): DataFrame with train set topic counts
+        val_counts (pd.DataFrame): DataFrame with validation set topic counts
+        class_names (List[str]): List of class names to use as labels
+        save_dir (str, optional): Directory to save the plots.
+        Defaults to ROOT_DIR/results.
+    """
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    color = plt.cm.Set3(np.linspace(0, 1, len(class_names)))
+
+    train_counts["count()"].plot(kind="bar", ax=ax1, color=color)
+    ax1.set_title("Topic Distribution in Training Set")
+    ax1.set_xlabel("Topic")
+    ax1.set_ylabel("Count")
+    ax1.set_xticklabels(class_names, rotation=45, ha="right")
+    ax1.legend().remove()
+
+    val_counts["count()"].plot(kind="bar", ax=ax2, color=color)
+    ax2.set_title("Topic Distribution in Validation Set")
+    ax2.set_xlabel("Topic")
+    ax2.set_ylabel("Count")
+    ax2.set_xticklabels(class_names, rotation=45, ha="right")
+    ax2.legend().remove()
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, "topic_distributions.png"))
+    plt.close()
+
+
 if __name__ == "__main__":
     # Dataset
-    num_samples = 100
+    num_samples = 10_000
     ds, class_names = load_data(num_samples=num_samples)
     train_ds, val_ds = stratify_split(ds, stratify="topic", test_size=0.2)
     tags = train_ds.unique(column="topic")
@@ -245,3 +288,5 @@ if __name__ == "__main__":
     logger.info(train_counts)
     logger.info("Validation dataset counts by topic:")
     logger.info(val_counts)
+
+    plot_topic_distributions(train_counts, val_counts, class_names)
