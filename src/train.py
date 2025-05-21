@@ -1,16 +1,26 @@
+import datetime
+import json
 import tempfile
 from typing import Tuple
 
 import numpy as np
+import ray
 import ray.train as train
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from ray.air.integrations.mlflow import MLflowLoggerCallback
 from ray.data import Dataset
+from ray.train.torch import TorchTrainer
 from transformers import BertModel
 
 from src import data, utils
-from src.config import PRETRAINED_MODEL_NAME, logger
+from src.config import (
+    EFS_DIR,
+    MLFLOW_TRACKING_URI,
+    PRETRAINED_MODEL_NAME,
+    logger,
+)
 from src.models import FinetunedBert
 
 
@@ -167,50 +177,152 @@ def train_loop_per_worker(config: dict) -> None:
             train.report(metrics, checkpoint=checkpoint)
 
 
-if __name__ == "__main__":
-    # Dataset
-    num_samples = 100
-    ds, class_names = data.load_data(num_samples=num_samples)
-    train_ds, val_ds = data.stratify_split(ds, stratify="topic", test_size=0.2)
+def train_model(
+    experiment_name: str = None,
+    train_loop_config: str = None,
+    num_workers: int = 1,
+    cpu_per_worker: int = 1,
+    gpu_per_worker: int = 0,
+    num_samples: int = None,
+    num_epochs: int = None,
+    batch_size: int = None,
+    results_fp: str = None,
+) -> ray.air.result.Result:
+    """Main train function to train our model as a distributed workload.
 
+    Args:
+        experiment_name (str): experiment name for the training workload.
+        train_loop_config (str): arguments to use for training.
+        num_workers (int, optional): number of workers to use for training.
+            Defaults to 1.
+        cpu_per_worker (int, optional): number of CPUs to use per worker.
+            Defaults to 1.
+        gpu_per_worker (int, optional): number of GPUs to use per worker.
+            Defaults to 0.
+        num_samples (int, optional): number of samples to use from dataset.
+            If this is passed in, it will override the config.
+            Defaults to None.
+        num_epochs (int, optional): number of epochs to train for.
+            If this is passed in, it will override the config.
+            Defaults to None.
+        batch_size (int, optional): number of samples per batch.
+            If this is passed in, it will override the config.
+            Defaults to None.
+        results_fp (str, optional): filepath to save results to.
+            Defaults to None.
+
+    Returns:
+        ray.air.result.Result: training results.
+    """
+    # Set up
+    train_loop_config = json.loads(train_loop_config)
+    train_loop_config["num_samples"] = num_samples
+    train_loop_config["num_epochs"] = num_epochs
+    train_loop_config["batch_size"] = batch_size
+
+    # Scaling config
+    scaling_config = train.ScalingConfig(
+        num_workers=num_workers,
+        use_gpu=bool(gpu_per_worker),
+        resources_per_worker={"CPU": cpu_per_worker, "GPU": gpu_per_worker},
+    )
+
+    # Checkpoint config
+    checkpoint_config = train.CheckpointConfig(
+        num_to_keep=1,
+        checkpoint_score_attribute="val_loss",
+        checkpoint_score_order="min",
+    )
+
+    # MLflow callback
+    mlflow_callback = MLflowLoggerCallback(
+        tracking_uri=MLFLOW_TRACKING_URI,
+        experiment_name=experiment_name,
+        save_artifact=True,
+    )
+
+    # Run config
+    run_config = train.RunConfig(
+        callbacks=[mlflow_callback],
+        checkpoint_config=checkpoint_config,
+        storage_path=EFS_DIR,
+    )
+
+    # Dataset
+    ds, num_classes = data.load_data(
+        num_samples=train_loop_config["num_samples"]
+    )
+    train_ds, val_ds = data.stratify_split(ds, stratify="topic", test_size=0.2)
+    train_loop_config["num_classes"] = len(num_classes)
+
+    # Dataset config
+    options = ray.data.ExecutionOptions(preserve_order=True)
+    dataset_config = train.DataConfig(
+        datasets_to_split=["train"], execution_options=options
+    )
+
+    # Preprocess
     preprocessor = data.CustomPreprocessor()
+    preprocessor = preprocessor.fit(train_ds)
     train_ds = preprocessor.transform(train_ds)
     val_ds = preprocessor.transform(val_ds)
     train_ds = train_ds.materialize()
     val_ds = val_ds.materialize()
 
-    # Model
-    base_model = BertModel.from_pretrained(PRETRAINED_MODEL_NAME)
-    dropout_p = 0.1
-    num_classes = len(class_names)
-
-    lr = 1e-4
-    batch_size = 2
-
-    model = FinetunedBert(
-        base_model=base_model,
-        dropout_p=dropout_p,
-        embedding_dim=base_model.config.hidden_size,
-        num_classes=num_classes,
-    )
-    # model = train.torch.prepare_model(model)
-
-    # Training components
-    loss_fn = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-    train_loss = train_step(
-        train_ds,
-        batch_size,
-        model,
-        num_classes,
-        loss_fn,
-        optimizer,
-    )
-    logger.info(f"Train loss: {train_loss:.4f}")
-
-    val_loss, y_trues, y_preds = eval_step(
-        val_ds, batch_size, model, num_classes, loss_fn
+    # Trainer
+    trainer = TorchTrainer(
+        train_loop_per_worker=train_loop_per_worker,
+        train_loop_config=train_loop_config,
+        scaling_config=scaling_config,
+        run_config=run_config,
+        datasets={"train": train_ds, "val": val_ds},
+        dataset_config=dataset_config,
+        metadata={"class_to_index": preprocessor.class_to_index},
     )
 
-    logger.info(f"Validation loss: {val_loss:.4f}")
+    # Train
+    results = trainer.fit()
+    d = {
+        "timestamp": datetime.datetime.now().strftime("%B %d, %Y %I:%M:%S %p"),
+        "run_id": utils.get_run_id(
+            experiment_name=experiment_name,
+            trial_id=results.metrics["trial_id"],
+        ),
+        "params": results.config["train_loop_config"],
+        "metrics": utils.dict_to_list(
+            results.metrics_dataframe.to_dict(),
+            keys=["epoch", "train_loss", "val_loss"],
+        ),
+    }
+    logger.info(json.dumps(d, indent=2))
+    if results_fp:
+        utils.save_dict(d, results_fp)
+    return results
+
+
+if __name__ == "__main__":
+    # Training params
+    experiment_name = "bert_finetune_example"
+    train_loop_config = {
+        "dropout_p": 0.5,
+        "lr": 1e-4,
+        "lr_factor": 0.8,
+        "lr_patience": 3,
+    }
+
+    results = train_model(
+        experiment_name=experiment_name,
+        train_loop_config=json.dumps(train_loop_config),
+        num_workers=1,
+        cpu_per_worker=8,
+        gpu_per_worker=0,
+        num_samples=100,
+        batch_size=64,
+        num_epochs=1,
+    )
+
+    logger.info(
+        f"Training complete.\n"
+        f"Final training loss: {results.metrics['train_loss']:.4f}\n"
+        f"Final validation loss: {results.metrics['val_loss']:.4f}\n"
+    )
