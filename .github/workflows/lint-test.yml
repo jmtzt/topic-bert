@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,3 +33,29 @@ jobs:
       - name: Lint code
         run: |
           make lint
+
+      - name: Minimize uv cache
+        run: |
+          uv cache prune --ci
+  test:
+    name: Run tests
+    permissions:
+      contents: read
+      packages: read
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.8'
+
+      - name: Install dependencies
+        run: |
+          make install
+
+      - name: Run tests
+        run: |
+          make test
