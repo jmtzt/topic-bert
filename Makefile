@@ -19,6 +19,10 @@ format:
 	$(ACTIVATE) && isort src/ tests/
 	$(ACTIVATE) && ruff format src/ tests/
 
+format-check:
+	$(ACTIVATE) && isort src/ tests/ --check-only
+	$(ACTIVATE) && ruff check src/ tests/
+
 test:
 	$(ACTIVATE) && pytest tests/ --verbose --disable-warnings
 
