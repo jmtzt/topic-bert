@@ -134,9 +134,16 @@ def tokenize(batch: Dict) -> Dict:
     tokenizer = BertTokenizer.from_pretrained(
         PRETRAINED_MODEL_NAME, return_dict=False
     )
+    max_len = tokenizer.model_max_length
+
     encoded_inputs = tokenizer(
-        batch["text"].tolist(), return_tensors="np", padding="longest"
+        batch["text"].tolist(),
+        return_tensors="np",
+        padding="max_length",
+        truncation=True,
+        max_length=max_len,
     )
+
     return dict(
         ids=encoded_inputs["input_ids"],
         masks=encoded_inputs["attention_mask"],
