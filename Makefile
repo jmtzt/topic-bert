@@ -29,6 +29,10 @@ format-check:
 test:
 	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings
 
+.PHONY: test-coverage
+test-coverage:
+	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings --cov=src --cov-report=term --cov-report=term-missing
+
 .PHONY: clean
 clean: format
 	find . -type f -name "*.DS_Store" -ls -delete
