@@ -34,9 +34,6 @@ jobs:
         run: |
           make lint
 
-      - name: Minimize uv cache
-        run: |
-          uv cache prune --ci
   test:
     name: Run tests
     permissions:
