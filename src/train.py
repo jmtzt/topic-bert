@@ -1,3 +1,6 @@
+from typing import Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -50,6 +53,46 @@ def train_step(
     return loss
 
 
+def eval_step(
+    ds: Dataset,
+    batch_size: int,
+    model: nn.Module,
+    num_classes: int,
+    loss_fn: torch.nn.modules.loss._WeightedLoss,
+) -> Tuple[float, np.array, np.array]:
+    """Eval step.
+
+    Args:
+        ds (Dataset): dataset to iterate batches from.
+        batch_size (int): size of each batch.
+        model (nn.Module): model to train.
+        num_classes (int): number of classes.
+        loss_fn (torch.nn.loss._WeightedLoss): loss function to use between
+        labels and predictions.
+
+    Returns:
+        Tuple[float, np.array, np.array]: cumulative loss,
+        ground truths and preds.
+    """
+    model.eval()
+    loss = 0.0
+    y_trues, y_preds = [], []
+    ds_generator = ds.iter_torch_batches(
+        batch_size=batch_size, collate_fn=utils.collate_fn
+    )
+    with torch.inference_mode():
+        for i, batch in enumerate(ds_generator):
+            z = model(batch)
+            targets = F.one_hot(
+                batch["targets"], num_classes=num_classes
+            ).float()
+            J = loss_fn(z, targets).item()
+            loss += (J - loss) / (i + 1)
+            y_trues.extend(batch["targets"].cpu().numpy())
+            y_preds.extend(torch.argmax(z, dim=1).cpu().numpy())
+    return loss, np.vstack(y_trues), np.vstack(y_preds)
+
+
 if __name__ == "__main__":
     # Dataset
     num_samples = 100
@@ -68,6 +111,7 @@ if __name__ == "__main__":
     num_classes = len(class_names)
 
     lr = 1e-4
+    batch_size = 2
 
     model = FinetunedBert(
         base_model=base_model,
@@ -83,10 +127,16 @@ if __name__ == "__main__":
 
     train_loss = train_step(
         train_ds,
-        2,
+        batch_size,
         model,
         num_classes,
         loss_fn,
         optimizer,
     )
     logger.info(f"Train loss: {train_loss:.4f}")
+
+    val_loss, y_trues, y_preds = eval_step(
+        val_ds, batch_size, model, num_classes, loss_fn
+    )
+
+    logger.info(f"Validation loss: {val_loss:.4f}")
