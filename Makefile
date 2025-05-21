@@ -11,7 +11,7 @@ $(VENV_DIR)/bin/activate:
 
 .PHONY: install
 install: $(VENV_DIR)/bin/activate
-	$(ACTIVATE) && uv sync --all-extras
+	$(ACTIVATE) && uv sync --all-extras && uv pip install -e .
 
 .PHONY: lint
 lint:
