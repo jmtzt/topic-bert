@@ -1,5 +1,5 @@
 [project]
-name = "voize"
+name = "topic-bert"
 version = "0.1.0"
 description = "Classifier of Yahoo Questions Topic Categories"
 readme = "README.md"
