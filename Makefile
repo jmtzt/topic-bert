@@ -9,23 +9,29 @@ $(VENV_DIR)/bin/activate:
 	$(ACTIVATE) && \
 	pip install uv
 
+.PHONY: install
 install: $(VENV_DIR)/bin/activate
 	$(ACTIVATE) && uv sync --all-extras
 
+.PHONY: lint
 lint:
 	$(ACTIVATE) && ruff check src/ tests/ --fix
 
+.PHONY: format
 format:
 	$(ACTIVATE) && isort src/ tests/
 	$(ACTIVATE) && ruff format src/ tests/
 
+.PHONY: format-check
 format-check:
 	$(ACTIVATE) && isort src/ tests/ --check-only
 	$(ACTIVATE) && ruff check src/ tests/
 
+.PHONY: test
 test:
-	$(ACTIVATE) && pytest tests/ --verbose --disable-warnings
+	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings
 
+.PHONY: clean
 clean: format
 	find . -type f -name "*.DS_Store" -ls -delete
 	find . | grep -E "(__pycache__|\.pyc|\.pyo)" | xargs rm -rf
