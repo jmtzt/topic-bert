@@ -19,13 +19,13 @@ lint:
 
 .PHONY: format
 format:
-	$(ACTIVATE) && isort src/ tests/
 	$(ACTIVATE) && ruff format src/ tests/
+	$(ACTIVATE) && isort src/ tests/
 
 .PHONY: format-check
 format-check:
-	$(ACTIVATE) && isort src/ tests/ --check-only
 	$(ACTIVATE) && ruff check src/ tests/
+	$(ACTIVATE) && isort src/ tests/ --check-only
 
 .PHONY: test
 test:
