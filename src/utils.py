@@ -1,8 +1,9 @@
 import json
 import os
 import random
-from typing import Any, Dict
+from typing import Any, Dict, List
 
+import mlflow
 import numpy as np
 import torch
 from ray.train.torch import get_device
@@ -92,3 +93,38 @@ def save_dict(
     with open(path, "w") as fp:
         json.dump(d, indent=2, fp=fp, cls=cls, sort_keys=sortkeys)
         fp.write("\n")
+
+
+def get_run_id(experiment_name: str, trial_id: str) -> str:
+    """Get the MLflow run ID for a specific Ray trial ID.
+
+    Args:
+        experiment_name (str): name of the experiment.
+        trial_id (str): id of the trial.
+
+    Returns:
+        str: run id of the trial.
+    """
+    trial_name = f"TorchTrainer_{trial_id}"
+    run = mlflow.search_runs(
+        experiment_names=[experiment_name],
+        filter_string=f"tags.trial_name = '{trial_name}'",
+    ).iloc[0]
+    return run.run_id
+
+
+def dict_to_list(data: Dict, keys: List[str]) -> List[Dict[str, Any]]:
+    """Convert a dictionary to a list of dictionaries.
+
+    Args:
+        data (Dict): input dictionary.
+        keys (List[str]): keys to include in the output list of dictionaries.
+
+    Returns:
+        List[Dict[str, Any]]: output list of dictionaries.
+    """
+    list_of_dicts = []
+    for i in range(len(data[keys[0]])):
+        new_dict = {key: data[key][i] for key in keys}
+        list_of_dicts.append(new_dict)
+    return list_of_dicts
