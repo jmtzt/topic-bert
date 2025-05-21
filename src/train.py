@@ -40,9 +40,9 @@ def train_step(
         model (nn.Module): model to train.
         num_classes (int): number of classes.
         loss_fn (torch.nn.loss._WeightedLoss): loss function to use between
-        labels and predictions.
+            labels and predictions.
         optimizer (torch.optimizer.Optimizer): optimizer to use for updating
-        the model's weights.
+            the model's weights.
 
     Returns:
         float: cumulative loss for the dataset.
@@ -80,7 +80,7 @@ def eval_step(
         model (nn.Module): model to train.
         num_classes (int): number of classes.
         loss_fn (torch.nn.loss._WeightedLoss): loss function to use between
-        labels and predictions.
+            labels and predictions.
 
     Returns:
         Tuple[float, np.array, np.array]: cumulative loss,
@@ -249,11 +249,11 @@ def train_model(
     )
 
     # Dataset
-    ds, num_classes = data.load_data(
+    ds, class_names = data.load_data(
         num_samples=train_loop_config["num_samples"]
     )
     train_ds, val_ds = data.stratify_split(ds, stratify="topic", test_size=0.2)
-    train_loop_config["num_classes"] = len(num_classes)
+    train_loop_config["num_classes"] = len(class_names)
 
     # Dataset config
     options = ray.data.ExecutionOptions(preserve_order=True)
