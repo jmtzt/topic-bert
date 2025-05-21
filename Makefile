@@ -20,12 +20,10 @@ lint:
 .PHONY: format
 format:
 	$(ACTIVATE) && ruff format src/ tests/
-	$(ACTIVATE) && isort src/ tests/
 
 .PHONY: format-check
 format-check:
 	$(ACTIVATE) && ruff check src/ tests/
-	$(ACTIVATE) && isort src/ tests/ --check-only
 
 .PHONY: test
 test:
