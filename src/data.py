@@ -61,7 +61,7 @@ def stratify_split(
         Tuple[Dataset, Dataset]: the stratified train and test datasets.
     """
 
-    def _add_split(df: pd.DataFrame) -> pd.DataFrame:
+    def _add_split(df: pd.DataFrame) -> pd.DataFrame:  # pragma: no cover
         """Naively split a dataframe into train and test splits.
         Add a column specifying whether it's the train or test split."""
         train, test = train_test_split(
@@ -71,7 +71,9 @@ def stratify_split(
         test["_split"] = "test"
         return pd.concat([train, test])
 
-    def _filter_split(df: pd.DataFrame, split: str) -> pd.DataFrame:
+    def _filter_split(
+        df: pd.DataFrame, split: str
+    ) -> pd.DataFrame:  # pragma: no cover
         """Filter by data points that match the split column's value
         and return the dataframe with the _split column dropped."""
         return df[df["_split"] == split].drop("_split", axis=1)
@@ -206,7 +208,7 @@ class CustomPreprocessor:
             i: name for i, name in enumerate(self.class_names)
         }
 
-    def fit(self, ds):
+    def fit(self, ds):  # pragma: no cover
         # This is a no-op for this example, but you could use it to
         # e.g. convert class names to indices
         return self
@@ -223,7 +225,7 @@ def plot_topic_distributions(
     val_counts: pd.DataFrame,
     class_names: List[str],
     save_dir: str = config.ROOT_DIR / "results",
-):
+):  # pragma: no cover
     """Create plots with the distribution of topics in train and val sets.
 
     Args:

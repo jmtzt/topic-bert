@@ -1,5 +1,6 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pandas as pd
 import pytest
 import ray
@@ -100,3 +101,69 @@ def test_transform(mock_dataset, mock_class_names):
         preprocessed_ds = preprocessor.transform(ds)
         assert len(preprocessor.class_to_index) == 2
         assert ds.count() == preprocessed_ds.count()
+
+
+@pytest.mark.parametrize(
+    "row, expected",
+    [
+        (
+            {
+                "question_title": "Title",
+                "question_content": "Content",
+                "best_answer": "Answer",
+            },
+            "Title Content Answer",
+        ),
+        (
+            {
+                "question_title": "Title",
+                "question_content": "",
+                "best_answer": "Answer",
+            },
+            "Title Answer",
+        ),
+        (
+            {
+                "question_title": "",
+                "question_content": "Content",
+                "best_answer": "",
+            },
+            "Content",
+        ),
+        (
+            {"question_title": "", "question_content": "", "best_answer": ""},
+            "",
+        ),
+        ({}, ""),
+    ],
+)
+def test_combine_text_fields(row, expected):
+    result = data.combine_text_fields(row)
+    assert result == expected
+
+
+@patch("src.data.BertTokenizer.from_pretrained")
+def test_tokenize(mock_tokenizer_class):
+    mock_tokenizer = MagicMock()
+    mock_tokenizer.model_max_length = 512
+    mock_tokenizer.return_value = {
+        "input_ids": np.array([[101, 102, 103]]),
+        "attention_mask": np.array([[1, 1, 1]]),
+    }
+    mock_tokenizer_class.return_value = mock_tokenizer
+
+    batch = {"text": pd.Series(["test text"]), "topic": [0]}
+
+    result = data.tokenize(batch)
+
+    assert "ids" in result
+    assert "masks" in result
+    assert "targets" in result
+
+    mock_tokenizer.assert_called_once_with(
+        ["test text"],
+        return_tensors="np",
+        padding="max_length",
+        truncation=True,
+        max_length=512,
+    )
