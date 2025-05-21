@@ -33,6 +33,12 @@ test:
 test-coverage:
 	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings --cov=src --cov-report=term --cov-report=term-missing
 
+.PHONY: mlflow
+mlflow:
+	$(ACTIVATE) && \
+	export MODEL_REGISTRY=$$(python -c "from src import config; print(config.MLFLOW_TRACKING_URI.replace('file://', ''))") && \
+	mlflow server -h 0.0.0.0 -p 8080 --backend-store-uri $$MODEL_REGISTRY
+
 .PHONY: clean
 clean: format
 	find . -type f -name "*.DS_Store" -ls -delete
