@@ -1,8 +1,21 @@
+import os
+import random
 from typing import Dict
 
 import numpy as np
 import torch
 from ray.train.torch import get_device
+
+
+def set_seeds(seed: int = 42):
+    """Set seeds for reproducibility."""
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    eval("setattr(torch.backends.cudnn, 'deterministic', True)")
+    eval("setattr(torch.backends.cudnn, 'benchmark', False)")
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
 
 def pad_array(arr: np.ndarray, dtype=np.int32) -> np.ndarray:
