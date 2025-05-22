@@ -9,9 +9,11 @@ dependencies = [
     "hyperopt>=0.2.7",
     "matplotlib>=3.10.3",
     "mlflow>=2.22.0",
+    "numpyencoder>=0.3.1",
     "pytest-cov>=6.1.1",
-    "ray>=2.46.0",
+    "ray[air]==2.31.0",
     "scikit-learn>=1.6.1",
+    "snorkel>=0.10.0",
     "torch>=2.7.0",
     "transformers>=4.51.3",
 ]
