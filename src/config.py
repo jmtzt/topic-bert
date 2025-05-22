@@ -13,6 +13,9 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 EFS_DIR = Path(ROOT_DIR, "efs")
 Path(EFS_DIR).mkdir(parents=True, exist_ok=True)
 
+RESULTS_DIR = Path(ROOT_DIR, "results")
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
 MODEL_REGISTRY = Path(f"{EFS_DIR}/mlflow")
 Path(MODEL_REGISTRY).mkdir(parents=True, exist_ok=True)
 MLFLOW_TRACKING_URI = "file://" + str(MODEL_REGISTRY.absolute())

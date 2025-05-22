@@ -19,6 +19,7 @@ from src.config import (
     EFS_DIR,
     MLFLOW_TRACKING_URI,
     PRETRAINED_MODEL_NAME,
+    RESULTS_DIR,
     logger,
 )
 from src.models import FinetunedBert
@@ -235,6 +236,9 @@ def train_model(
     )
 
     # MLflow callback
+    # NOTE: I had to change dir=trial.local_path to dir=trial.path
+    # Because local_dir was deprecated after ray 2.10
+    # self.mlflow_util.save_artifacts(run_id=run_id, dir=trial.path)
     mlflow_callback = MLflowLoggerCallback(
         tracking_uri=MLFLOW_TRACKING_URI,
         experiment_name=experiment_name,
@@ -319,6 +323,7 @@ if __name__ == "__main__":  # pragma: no cover
         num_samples=100,
         batch_size=64,
         num_epochs=1,
+        results_fp=f"{RESULTS_DIR}/{experiment_name}_results.json",
     )
 
     logger.info(
