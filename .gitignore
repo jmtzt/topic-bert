@@ -2,6 +2,7 @@
 logs/
 stores/
 mlflow/
+mlruns/
 results/
 workspaces/
 efs/
