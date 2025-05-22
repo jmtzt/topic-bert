@@ -180,7 +180,7 @@ def predict(
     return results
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # Example usage
     experiment_name = "bert_finetune_example"
     run_id = get_best_run_id(

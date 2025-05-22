@@ -18,6 +18,7 @@ from src import data, utils
 from src.config import (
     EFS_DIR,
     MLFLOW_TRACKING_URI,
+    NUM_TRAIN_SAMPLES,
     PRETRAINED_MODEL_NAME,
     RESULTS_DIR,
     logger,
@@ -320,7 +321,7 @@ if __name__ == "__main__":  # pragma: no cover
         num_workers=1,
         cpu_per_worker=8,
         gpu_per_worker=0,
-        num_samples=100,
+        num_samples=NUM_TRAIN_SAMPLES,
         batch_size=64,
         num_epochs=1,
         results_fp=f"{RESULTS_DIR}/{experiment_name}_results.json",
