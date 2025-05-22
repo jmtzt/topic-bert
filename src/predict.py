@@ -1,0 +1,201 @@
+import json
+from pathlib import Path
+from typing import Any, Dict, Iterable, List
+from urllib.parse import urlparse
+
+import numpy as np
+import ray
+from numpyencoder import NumpyEncoder
+from ray.air import Result
+from ray.train.torch.torch_checkpoint import TorchCheckpoint
+
+from src.config import logger, mlflow
+from src.data import CustomPreprocessor
+from src.models import FinetunedBert
+from src.utils import collate_fn
+
+
+def decode(indices: Iterable[Any], index_to_class: Dict) -> List:
+    """Decode indices to labels.
+
+    Args:
+        indices (Iterable[Any]): Iterable (list, array, etc.) with indices.
+        index_to_class (Dict): mapping between indices and labels.
+
+    Returns:
+        List: list of labels.
+    """
+    return [index_to_class[index] for index in indices]
+
+
+def format_prob(prob: Iterable, index_to_class: Dict) -> Dict:
+    """Format probabilities to a dictionary mapping class label to probability.
+
+    Args:
+        prob (Iterable): probabilities.
+        index_to_class (Dict): mapping between indices and labels.
+
+    Returns:
+        Dict: Dictionary mapping class label to probability.
+    """
+    d = {}
+    for i, item in enumerate(prob):
+        d[index_to_class[i]] = item
+    return d
+
+
+class TorchPredictor:
+    def __init__(self, preprocessor, model):
+        self.preprocessor = preprocessor
+        self.model = model
+        self.model.eval()
+
+    def __call__(self, batch):
+        results = self.model.predict(collate_fn(batch))
+        return {"output": results}
+
+    def predict_proba(self, batch):
+        results = self.model.predict_proba(collate_fn(batch))
+        return {"output": results}
+
+    def get_preprocessor(self):
+        return self.preprocessor
+
+    @classmethod
+    def from_checkpoint(cls, checkpoint):
+        metadata = checkpoint.get_metadata()
+        class_names = metadata["class_to_index"].keys()
+        preprocessor = CustomPreprocessor(class_names=list(class_names))
+        model = FinetunedBert.load(
+            Path(checkpoint.path, "args.json"),
+            Path(checkpoint.path, "model.pt"),
+        )
+        return cls(preprocessor=preprocessor, model=model)
+
+
+def predict_proba(
+    ds: ray.data.dataset.Dataset,
+    predictor: TorchPredictor,
+) -> List:  # pragma: no cover
+    """Predict topics (with probabilities) for input data from a dataframe.
+
+    Args:
+        df (pd.DataFrame): dataframe with input features.
+        predictor (TorchPredictor): loaded predictor from a checkpoint.
+
+    Returns:
+        List: list of predicted labels.
+    """
+    preprocessor = predictor.get_preprocessor()
+    preprocessed_ds = preprocessor.transform(ds)
+    outputs = preprocessed_ds.map_batches(predictor.predict_proba)
+    y_prob = np.array([d["output"] for d in outputs.take_all()])
+    results = []
+    for i, prob in enumerate(y_prob):
+        topic = preprocessor.index_to_class[prob.argmax()]
+        results.append(
+            {
+                "prediction": topic,
+                "probabilities": format_prob(
+                    prob, preprocessor.index_to_class
+                ),
+            }
+        )
+    return results
+
+
+def get_best_run_id(
+    experiment_name: str = "", metric: str = "", mode: str = ""
+) -> str:  # pragma: no cover, mlflow logic
+    """Get the best run_id from an MLflow experiment.
+
+    Args:
+        experiment_name (str): name of the experiment.
+        metric (str): metric to filter by.
+        mode (str): direction of metric (ASC/DESC).
+
+    Returns:
+        str: best run id from experiment.
+    """
+    sorted_runs = mlflow.search_runs(
+        experiment_names=[experiment_name],
+        order_by=[f"metrics.{metric} {mode}"],
+    )
+    run_id = sorted_runs.iloc[0].run_id
+    logger.info(f"Loading run with id: {run_id}")
+    return run_id
+
+
+def get_best_checkpoint(
+    run_id: str,
+) -> TorchCheckpoint:  # pragma: no cover
+    """Get the best checkpoint from a specific run.
+
+    Args:
+        run_id (str): ID of the run to get the best checkpoint from.
+
+    Returns:
+        TorchCheckpoint: Best checkpoint from the run.
+    """
+    artifact_dir = urlparse(mlflow.get_run(run_id).info.artifact_uri).path
+    results = Result.from_path(artifact_dir)
+    return results.best_checkpoints[0][0]
+
+
+def predict(
+    run_id: str = None,
+    question_title: str = "",
+    question_content: str = "",
+    best_answer: str = "",
+) -> Dict:  # pragma: no cover
+    """Predict the topic for a question given it's title, content and
+    best answer.
+
+    Args:
+        run_id (str): id of the specific run to load from. Defaults to None.
+        question_title (str): title of the question.
+        question_content (str): content of the question.
+        best_answer (str): content of the best answer.
+
+    Returns:
+        Dict: prediction results for the input data.
+    """
+    # Load components
+    best_checkpoint = get_best_checkpoint(run_id=run_id)
+    predictor = TorchPredictor.from_checkpoint(best_checkpoint)
+
+    # Predict
+    sample_ds = ray.data.from_items(
+        [
+            {
+                "question_title": str(question_title),
+                "question_content": str(question_content),
+                "best_answer": str(best_answer),
+                "topic": -1,
+            }
+        ]
+    )
+    results = predict_proba(ds=sample_ds, predictor=predictor)
+    logger.info(json.dumps(results, cls=NumpyEncoder, indent=2))
+    return results
+
+
+if __name__ == "__main__":
+    # Example usage
+    experiment_name = "bert_finetune_example"
+    run_id = get_best_run_id(
+        experiment_name=experiment_name,
+        metric="val_loss",
+        mode="ASC",
+    )
+
+    question_title = "What is the capital of France?"
+    question_content = "I want to know the capital city of France."
+    best_answer = "Paris is the capital of France."
+
+    results = predict(
+        run_id=run_id,
+        question_title=question_title,
+        question_content=question_content,
+        best_answer=best_answer,
+    )
