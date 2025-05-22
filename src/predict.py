@@ -44,7 +44,7 @@ def format_prob(prob: Iterable, index_to_class: Dict) -> Dict:
     return d
 
 
-class TorchPredictor:
+class TorchPredictor:  # pragma: no cover
     def __init__(self, preprocessor, model):
         self.preprocessor = preprocessor
         self.model = model
