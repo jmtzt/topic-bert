@@ -269,8 +269,7 @@ if __name__ == "__main__":  # pragma: no cover
     num_samples = 10_000
     ds, class_names = load_data(num_samples=num_samples)
     train_ds, val_ds = stratify_split(ds, stratify="topic", test_size=0.2)
-    tags = train_ds.unique(column="topic")
-    num_classes = len(tags)
+    num_classes = len(class_names)
 
     # Preprocess
     preprocessor = CustomPreprocessor(class_names=class_names)
