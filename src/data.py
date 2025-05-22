@@ -19,18 +19,22 @@ def load_data(
     dataset_name: str = config.DATASET_NAME,
     target_column: str = "topic",
     num_samples: int = None,
+    split: str = "train",
 ) -> Tuple[Dataset, List[str]]:
     """Load data from source into a Ray Dataset.
 
     Args:
         dataset_name (str): The name of the dataset to load.
+        target_column (str): The name of the target column.
         num_samples (int, optional): The number of samples to load.
-        Defaults to None.
+            Defaults to None.
+        split (str, optional): Dataset split to load ('train', 'test').
+            Defaults to "train".
 
     Returns:
         Tuple[Dataset, List[str]]: a Ray Dataset and list of class names.
     """
-    ds = load_dataset(dataset_name, split="train")
+    ds = load_dataset(dataset_name, split=split)
     class_names = ds.features[target_column].names
     ds = ray.data.from_huggingface(ds)
     ds = ds.random_shuffle(seed=1234)
