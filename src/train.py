@@ -262,7 +262,7 @@ def train_model(
     )
 
     # Preprocess
-    preprocessor = data.CustomPreprocessor()
+    preprocessor = data.CustomPreprocessor(class_names)
     preprocessor = preprocessor.fit(train_ds)
     train_ds = preprocessor.transform(train_ds)
     val_ds = preprocessor.transform(val_ds)
