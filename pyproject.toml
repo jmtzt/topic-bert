@@ -17,6 +17,7 @@ dependencies = [
     "torch>=2.7.0",
     "transformers>=4.51.3",
     "typer>=0.15.4",
+    "typing-extensions>=4.13.2",
 ]
 
 [dependency-groups]
