@@ -50,7 +50,7 @@ def tune_models(
     ] = 0,
     num_runs: Annotated[
         int, typer.Option(help="number of runs in this tuning experiment.")
-    ] = 1,
+    ] = 5,
     num_samples: Annotated[
         int, typer.Option(help="number of samples to use from dataset.")
     ] = NUM_TRAIN_SAMPLES,
