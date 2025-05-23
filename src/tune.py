@@ -1,5 +1,6 @@
 import datetime
 import json
+from typing_extensions import Annotated
 
 import ray
 from ray import tune
@@ -11,22 +12,57 @@ from ray.tune import Tuner
 from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.search import ConcurrencyLimiter
 from ray.tune.search.hyperopt import HyperOptSearch
+import typer
 
 from src import data, train, utils
-from src.config import EFS_DIR, MLFLOW_TRACKING_URI, logger
+from src.config import (
+    EFS_DIR,
+    MLFLOW_TRACKING_URI,
+    logger,
+    NUM_TRAIN_SAMPLES,
+    RESULTS_DIR,
+)
 
 
+app = typer.Typer()
+
+
+@app.command()
 def tune_models(
-    experiment_name: str,
-    initial_params: str,
-    num_workers: int = 1,
-    cpu_per_worker: int = 1,
-    gpu_per_worker: int = 0,
-    num_runs: int = 1,
-    num_samples: int = None,
-    num_epochs: int = None,
-    batch_size: int = None,
-    results_fp: str = None,
+    experiment_name: Annotated[
+        str,
+        typer.Option(
+            help="name of the experiment for this training workload."
+        ),
+    ] = "bert_hparam_tune_test",
+    initial_params: Annotated[
+        str, typer.Option(help="initial config for the tuning workload.")
+    ] = '[{"train_loop_config":'
+    '{"dropout_p": 0.5, "lr": 1e-4, "lr_factor": 0.8, "lr_patience": 3}}]',
+    num_workers: Annotated[
+        int, typer.Option(help="number of workers to use for training.")
+    ] = 1,
+    cpu_per_worker: Annotated[
+        int, typer.Option(help="number of CPUs to use per worker.")
+    ] = 8,
+    gpu_per_worker: Annotated[
+        int, typer.Option(help="number of GPUs to use per worker.")
+    ] = 0,
+    num_runs: Annotated[
+        int, typer.Option(help="number of runs in this tuning experiment.")
+    ] = 1,
+    num_samples: Annotated[
+        int, typer.Option(help="number of samples to use from dataset.")
+    ] = NUM_TRAIN_SAMPLES,
+    num_epochs: Annotated[
+        int, typer.Option(help="number of epochs to train for.")
+    ] = 5,
+    batch_size: Annotated[
+        int, typer.Option(help="number of samples per batch.")
+    ] = 64,
+    results_fp: Annotated[
+        str, typer.Option(help="filepath to save results to.")
+    ] = f"{RESULTS_DIR}/tune_results.json",
 ) -> ray.tune.result_grid.ResultGrid:
     """Hyperparameter tuning experiment.
 
@@ -184,25 +220,7 @@ def tune_models(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    # Example usage
-    experiment_name = "bert_hparam_tune_test"
-    train_loop_config = {
-        "dropout_p": 0.5,
-        "lr": 1e-4,
-        "lr_factor": 0.8,
-        "lr_patience": 3,
-    }
-
-    initial_params = [{"train_loop_config": train_loop_config}]
-
-    tune_models(
-        experiment_name=experiment_name,
-        initial_params=json.dumps(initial_params),
-        num_workers=1,
-        cpu_per_worker=8,
-        gpu_per_worker=0,
-        num_samples=100,
-        batch_size=64,
-        num_runs=1,
-        num_epochs=5,
-    )
+    if ray.is_initialized():
+        ray.shutdown()
+    ray.init()
+    app()
