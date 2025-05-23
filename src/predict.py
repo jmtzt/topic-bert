@@ -108,6 +108,7 @@ def predict_proba(
     return results
 
 
+@app.command()
 def get_best_run_id(
     experiment_name: str = "", metric: str = "", mode: str = ""
 ) -> str:  # pragma: no cover, mlflow logic
