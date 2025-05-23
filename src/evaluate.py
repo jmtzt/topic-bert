@@ -2,15 +2,20 @@ import datetime
 import json
 from collections import OrderedDict
 from typing import Dict
+import ray
+from typing_extensions import Annotated
 
 import numpy as np
+import typer
 from ray.data import Dataset
 from sklearn.metrics import precision_recall_fscore_support
 from snorkel.slicing import PandasSFApplier, slicing_function
 
 from src import data, predict, utils
 from src.config import NUM_TEST_SAMPLES, logger
-from src.predict import TorchPredictor, get_best_run_id
+from src.predict import TorchPredictor
+
+app = typer.Typer()
 
 
 def get_overall_metrics(
@@ -105,9 +110,14 @@ def get_slice_metrics(
     return slice_metrics
 
 
+@app.command()
 def evaluate(
-    run_id: str = None,
-    results_fp: str = None,
+    run_id: Annotated[
+        str, typer.Option(help="id of the specific run to load from")
+    ] = None,
+    results_fp: Annotated[
+        str, typer.Option(help="location to save evaluation results to")
+    ] = None,
 ) -> Dict:  # pragma: no cover
     """Evaluate on the holdout dataset.
 
@@ -153,15 +163,7 @@ def evaluate(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    # Example usage
-    experiment_name = "bert_finetune_example"
-    run_id = get_best_run_id(
-        experiment_name=experiment_name,
-        metric="val_loss",
-        mode="ASC",
-    )
-    results_fp = f"results/eval_{experiment_name}_{run_id}.json"
-    metrics = evaluate(
-        run_id=run_id,
-        results_fp=results_fp,
-    )
+    if ray.is_initialized():
+        ray.shutdown()
+    ray.init()
+    app()
