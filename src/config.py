@@ -2,9 +2,12 @@
 import logging
 import logging.config
 import sys
+import datasets
 from pathlib import Path
 
 import mlflow
+
+datasets.logging.set_verbosity_error()
 
 # Directories
 ROOT_DIR = Path(__file__).parent.parent.absolute()
@@ -23,8 +26,8 @@ mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 # Dataset
 DATASET_NAME = "community-datasets/yahoo_answers_topics"
-NUM_TRAIN_SAMPLES = 10_000
-NUM_TEST_SAMPLES = 1_000
+NUM_TRAIN_SAMPLES = 100
+NUM_TEST_SAMPLES = 100
 
 # Bert Pretrained Model
 PRETRAINED_MODEL_NAME = "google-bert/bert-base-cased"
