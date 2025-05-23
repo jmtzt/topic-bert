@@ -1,10 +1,12 @@
 import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
+from typing_extensions import Annotated
 from urllib.parse import urlparse
 
 import numpy as np
 import ray
+import typer
 from numpyencoder import NumpyEncoder
 from ray.air import Result
 from ray.train.torch.torch_checkpoint import TorchCheckpoint
@@ -13,6 +15,8 @@ from src.config import logger, mlflow
 from src.data import CustomPreprocessor
 from src.models import FinetunedBert
 from src.utils import collate_fn
+
+app = typer.Typer()
 
 
 def decode(indices: Iterable[Any], index_to_class: Dict) -> List:
@@ -142,11 +146,18 @@ def get_best_checkpoint(
     return results.best_checkpoints[0][0]
 
 
+@app.command()
 def predict(
-    run_id: str = None,
-    question_title: str = "",
-    question_content: str = "",
-    best_answer: str = "",
+    run_id: Annotated[str, typer.Option(help="Run ID to use.")],
+    question_title: Annotated[
+        str, typer.Option(help="Question title.")
+    ] = "What is the capital of France?",
+    question_content: Annotated[
+        str, typer.Option(help="Question content.")
+    ] = "I want to know the capital city of France.",
+    best_answer: Annotated[
+        str, typer.Option(help="Best answer.")
+    ] = "Paris is the capital of France.",
 ) -> Dict:  # pragma: no cover
     """Predict the topic for a question given it's title, content and
     best answer.
@@ -181,21 +192,7 @@ def predict(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    # Example usage
-    experiment_name = "bert_finetune_example"
-    run_id = get_best_run_id(
-        experiment_name=experiment_name,
-        metric="val_loss",
-        mode="ASC",
-    )
-
-    question_title = "What is the capital of France?"
-    question_content = "I want to know the capital city of France."
-    best_answer = "Paris is the capital of France."
-
-    results = predict(
-        run_id=run_id,
-        question_title=question_title,
-        question_content=question_content,
-        best_answer=best_answer,
-    )
+    if ray.is_initialized():
+        ray.shutdown()
+    ray.init()
+    app()
