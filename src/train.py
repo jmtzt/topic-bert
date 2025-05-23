@@ -2,6 +2,7 @@ import datetime
 import json
 import tempfile
 from typing import Tuple
+from typing_extensions import Annotated
 
 import numpy as np
 import ray
@@ -9,6 +10,7 @@ import ray.train as train
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import typer
 from ray.air.integrations.mlflow import MLflowLoggerCallback
 from ray.data import Dataset
 from ray.train.torch import TorchTrainer
@@ -24,6 +26,8 @@ from src.config import (
     logger,
 )
 from src.models import FinetunedBert
+
+app = typer.Typer()
 
 
 def train_step(
@@ -179,22 +183,46 @@ def train_loop_per_worker(config: dict) -> None:  # pragma: no cover
             train.report(metrics, checkpoint=checkpoint)
 
 
+@app.command()
 def train_model(
-    experiment_name: str = None,
-    train_loop_config: str = None,
-    num_workers: int = 1,
-    cpu_per_worker: int = 1,
-    gpu_per_worker: int = 0,
-    num_samples: int = None,
-    num_epochs: int = None,
-    batch_size: int = None,
-    results_fp: str = None,
+    experiment_name: Annotated[
+        str,
+        typer.Option(
+            help="name of the experiment for this training workload."
+        ),
+    ] = "bert_finetune_example",
+    train_loop_config: Annotated[
+        str, typer.Option(help="arguments to use for training.")
+    ] = '{"dropout_p": 0.5, "lr": 1e-4, "lr_factor": 0.8, "lr_patience": 3}',
+    num_workers: Annotated[
+        int, typer.Option(help="number of workers to use for training.")
+    ] = 1,
+    cpu_per_worker: Annotated[
+        int, typer.Option(help="number of CPUs to use per worker.")
+    ] = 8,
+    gpu_per_worker: Annotated[
+        int, typer.Option(help="number of GPUs to use per worker.")
+    ] = 0,
+    num_samples: Annotated[
+        int, typer.Option(help="number of samples to use from dataset.")
+    ] = NUM_TRAIN_SAMPLES,
+    num_epochs: Annotated[
+        int, typer.Option(help="number of epochs to train for.")
+    ] = 1,
+    batch_size: Annotated[
+        int, typer.Option(help="number of samples per batch.")
+    ] = 64,
+    results_fp: Annotated[
+        str, typer.Option(help="filepath to save results to.")
+    ] = f"{RESULTS_DIR}/results.json",
 ) -> ray.air.result.Result:
     """Main train function to train our model as a distributed workload.
 
     Args:
         experiment_name (str): experiment name for the training workload.
+            Defaults to "bert_finetune_example".
         train_loop_config (str): arguments to use for training.
+        Defaults "{dropout_p: 0.5, lr: 1e-4, lr_factor: 0.8, lr_patience: 3}".
         num_workers (int, optional): number of workers to use for training.
             Defaults to 1.
         cpu_per_worker (int, optional): number of CPUs to use per worker.
@@ -203,15 +231,15 @@ def train_model(
             Defaults to 0.
         num_samples (int, optional): number of samples to use from dataset.
             If this is passed in, it will override the config.
-            Defaults to None.
+            Defaults to NUM_TRAIN_SAMPLES.
         num_epochs (int, optional): number of epochs to train for.
             If this is passed in, it will override the config.
-            Defaults to None.
+            Defaults to 1.
         batch_size (int, optional): number of samples per batch.
             If this is passed in, it will override the config.
-            Defaults to None.
+            Defaults to 64.
         results_fp (str, optional): filepath to save results to.
-            Defaults to None.
+            Defaults to RESULTS_DIR/results.json.
 
     Returns:
         ray.air.result.Result: training results.
@@ -306,29 +334,7 @@ def train_model(
 
 
 if __name__ == "__main__":  # pragma: no cover
-    # Training params
-    experiment_name = "bert_finetune_example"
-    train_loop_config = {
-        "dropout_p": 0.5,
-        "lr": 1e-4,
-        "lr_factor": 0.8,
-        "lr_patience": 3,
-    }
-
-    results = train_model(
-        experiment_name=experiment_name,
-        train_loop_config=json.dumps(train_loop_config),
-        num_workers=1,
-        cpu_per_worker=8,
-        gpu_per_worker=0,
-        num_samples=NUM_TRAIN_SAMPLES,
-        batch_size=64,
-        num_epochs=1,
-        results_fp=f"{RESULTS_DIR}/{experiment_name}_results.json",
-    )
-
-    logger.info(
-        f"Training complete.\n"
-        f"Final training loss: {results.metrics['train_loss']:.4f}\n"
-        f"Final validation loss: {results.metrics['val_loss']:.4f}\n"
-    )
+    if ray.is_initialized():
+        ray.shutdown()
+    ray.init()
+    app()
