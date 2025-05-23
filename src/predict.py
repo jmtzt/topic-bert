@@ -127,7 +127,7 @@ def get_best_run_id(
         order_by=[f"metrics.{metric} {mode}"],
     )
     run_id = sorted_runs.iloc[0].run_id
-    logger.info(f"Loading run with id: {run_id}")
+    print(run_id)
     return run_id
 
 
