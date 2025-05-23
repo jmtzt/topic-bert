@@ -16,6 +16,7 @@ dependencies = [
     "snorkel>=0.10.0",
     "torch>=2.7.0",
     "transformers>=4.51.3",
+    "typer>=0.15.4",
 ]
 
 [dependency-groups]
