@@ -11,7 +11,6 @@ from starlette.requests import Request
 from src import predict
 from src.config import MLFLOW_TRACKING_URI, mlflow
 from src.predict import TorchPredictor
-from src.evaluate import evaluate
 
 app = FastAPI(
     title="BERT Topic Classifier",
@@ -47,12 +46,6 @@ class ModelDeployment:
     def _run_id(self) -> Dict:
         """Get the run ID."""
         return {"run_id": self.run_id}
-
-    @app.post("/evaluate/")
-    async def _evaluate(self, request: Request) -> Dict:
-        data = await request.json()
-        results = evaluate(run_id=self.run_id, dataset_loc=data.get("dataset"))
-        return {"results": results}
 
     @app.post("/predict/")
     async def _predict(self, request: Request):
