@@ -1,0 +1,27 @@
+name: Build Docker Image
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  image-build:
+    name: Build Docker Image Workflow
+    permissions:
+      contents: read
+      packages: read
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          tags: ${{ github.repository }}:latest,topic-bert:latest
+          platform: linux/amd64
+          # NOTE: here we're not pushing to any registry, but in an actual product, we'd push this to e.g ECR or GCR
+          # and we'd also cache the image to speed up subsequent builds
