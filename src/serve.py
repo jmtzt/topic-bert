@@ -2,8 +2,8 @@ import argparse
 from http import HTTPStatus
 from typing import Dict
 from fastapi.responses import JSONResponse
-
 import ray
+
 from fastapi import FastAPI
 from ray import serve
 from starlette.requests import Request
