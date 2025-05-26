@@ -13,6 +13,10 @@ $(VENV_DIR)/bin/activate:
 install: $(VENV_DIR)/bin/activate
 	$(ACTIVATE) && uv sync --all-extras && uv pip install -e .
 
+.PHONY: install-dev
+install-dev: $(VENV_DIR)/bin/activate
+	$(ACTIVATE) && uv pip install ruff
+
 .PHONY: lint
 lint:
 	$(ACTIVATE) && ruff check src/ tests/ --fix

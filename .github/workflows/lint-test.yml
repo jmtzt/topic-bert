@@ -22,9 +22,9 @@ jobs:
         with:
           python-version: '3.12.8'
 
-      - name: Install dependencies
+      - name: Install dependencies for linting
         run: |
-          make install
+          make install-dev
 
       - name: Check code formatting
         run: |
