@@ -19,7 +19,7 @@ RUN make install
 EXPOSE 8000
 
 # Mlflow
-EXPOSE 8081
+EXPOSE 8080
 
 ENV PYTHONPATH=/app
 
