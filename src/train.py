@@ -215,7 +215,7 @@ def train_model(
     results_fp: Annotated[
         str, typer.Option(help="filepath to save results to.")
     ] = f"{RESULTS_DIR}/results.json",
-) -> ray.air.result.Result:
+) -> ray.air.result.Result:  # pragma: no cover
     """Main train function to train our model as a distributed workload.
 
     Args:

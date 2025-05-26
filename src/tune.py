@@ -63,7 +63,7 @@ def tune_models(
     results_fp: Annotated[
         str, typer.Option(help="filepath to save results to.")
     ] = f"{RESULTS_DIR}/tune_results.json",
-) -> ray.tune.result_grid.ResultGrid:
+) -> ray.tune.result_grid.ResultGrid:  # pragma: no cover
     """Hyperparameter tuning experiment.
 
     Args:
