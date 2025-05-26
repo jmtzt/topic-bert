@@ -31,11 +31,11 @@ format-check:
 
 .PHONY: test
 test:
-	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings
+	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings -m "not training"
 
 .PHONY: test-coverage
 test-coverage:
-	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings --cov=src --cov-report=term --cov-report=term-missing
+	$(ACTIVATE) && PYTHONPATH=$(CURDIR) pytest tests/ --verbose --disable-warnings --cov=src --cov-report=term --cov-report=term-missing -m "not training"
 
 .PHONY: mlflow
 mlflow:

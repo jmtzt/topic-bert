@@ -41,3 +41,6 @@ extend-select = ["E501"]
 
 [tool.pytest.ini_options]
 python_paths = ["."]
+markers = [
+    "training: marks tests as training tests (deselect with '-m \"not training\"')"
+]
